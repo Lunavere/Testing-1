@@ -29,7 +29,7 @@
 <body>
 
 <h2>Danh sách lô đất</h2>
-<!-- Kích hoạt input ẩn bằng thao tác phím: nhấn Alt + Shift + E -->
+<!-- Kích hoạt input ẩn bằng thao tác phím: nhấn Ctrl + Alt + E -->
 <div id="excelFileContainer">
   <input type="file" id="excelFile" accept=".xlsx" />
   <button onclick="hideExcelInput()">Đóng</button>
@@ -63,7 +63,7 @@
   document.getElementById("excelFile").addEventListener("change", handleFile, false);
 
   document.addEventListener('keydown', function(e) {
-    if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'e') {
+    if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'e') {
       const container = document.getElementById('excelFileContainer');
       container.style.display = 'block';
       container.scrollIntoView({ behavior: 'smooth' });
@@ -120,16 +120,29 @@
     if (!el.node()) return;
     d3.selectAll(".plot").classed("highlight", false);
     el.classed("highlight", true);
-
     document.getElementById("mapContainer").scrollIntoView({ behavior: "smooth" });
   }
 
-  // Load cached data from localStorage on page load
+  // Load cached data or default data from GitHub
   window.addEventListener('DOMContentLoaded', () => {
     const savedData = localStorage.getItem('plotData');
     if (savedData) {
       cachedData = JSON.parse(savedData);
       loadPlots(cachedData);
+    } else {
+      // Load Excel file from GitHub
+      fetch('https://raw.githubusercontent.com/Lunavere/Testing-1/main/data(rev1).xlsx')
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+          const data = new Uint8Array(arrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(sheet);
+          cachedData = json;
+          localStorage.setItem('plotData', JSON.stringify(cachedData));
+          loadPlots(cachedData);
+        })
+        .catch(err => console.error("Lỗi tải file Excel từ GitHub:", err));
     }
   });
 </script>
