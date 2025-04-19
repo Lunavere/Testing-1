@@ -82,7 +82,8 @@
       const workbook = XLSX.read(data, { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(sheet);
-      cachedData = json; // Store loaded data
+      cachedData = json;
+      localStorage.setItem('plotData', JSON.stringify(cachedData));
       loadPlots(cachedData);
     };
     reader.readAsArrayBuffer(file);
@@ -122,6 +123,15 @@
 
     document.getElementById("mapContainer").scrollIntoView({ behavior: "smooth" });
   }
+
+  // Load cached data from localStorage on page load
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedData = localStorage.getItem('plotData');
+    if (savedData) {
+      cachedData = JSON.parse(savedData);
+      loadPlots(cachedData);
+    }
+  });
 </script>
 
 </body>
