@@ -47,6 +47,7 @@
 <script>
   const svg = d3.select("#mapSvg");
   let zoomLevel = 1;
+  let cachedData = null;
 
   const zoom = d3.zoom()
     .scaleExtent([0.5, 10])
@@ -81,7 +82,8 @@
       const workbook = XLSX.read(data, { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(sheet);
-      loadPlots(json);
+      cachedData = json; // Store loaded data
+      loadPlots(cachedData);
     };
     reader.readAsArrayBuffer(file);
   }
