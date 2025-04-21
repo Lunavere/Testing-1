@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Bản đồ khu đất</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     #plotButtons { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
@@ -23,17 +22,11 @@
       border: 1px solid #aaa;
       font-size: 12px;
     }
-    #excelFileContainer { display: none; margin-bottom: 20px; }
   </style>
 </head>
 <body>
 
 <h2>Danh sách lô đất</h2>
-<!-- Kích hoạt input ẩn bằng thao tác phím: nhấn Ctrl + Alt + E -->
-<div id="excelFileContainer">
-  <input type="file" id="excelFile" accept=".xlsx" />
-  <button onclick="hideExcelInput()">Đóng</button>
-</div>
 <div id="plotButtons"></div>
 
 <h3>Bản đồ khu đô thị</h3>
@@ -47,7 +40,6 @@
 <script>
   const svg = d3.select("#mapSvg");
   let zoomLevel = 1;
-  let cachedData = null;
 
   const zoom = d3.zoom()
     .scaleExtent([0.5, 10])
@@ -59,35 +51,6 @@
 
   svg.call(zoom);
   svg.append("g").attr("id", "mapContent");
-
-  document.getElementById("excelFile").addEventListener("change", handleFile, false);
-
-  document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'e') {
-      const container = document.getElementById('excelFileContainer');
-      container.style.display = 'block';
-      container.scrollIntoView({ behavior: 'smooth' });
-    }
-  });
-
-  function hideExcelInput() {
-    document.getElementById('excelFileContainer').style.display = 'none';
-  }
-
-  function handleFile(event) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(sheet);
-      cachedData = json;
-      localStorage.setItem('plotData', JSON.stringify(cachedData));
-      loadPlots(cachedData);
-    };
-    reader.readAsArrayBuffer(file);
-  }
 
   function loadPlots(data) {
     const buttonContainer = document.getElementById("plotButtons");
@@ -123,26 +86,27 @@
     document.getElementById("mapContainer").scrollIntoView({ behavior: "smooth" });
   }
 
-  // Load cached data or default data from GitHub
-  window.addEventListener('DOMContentLoaded', () => {
-    const savedData = localStorage.getItem('plotData');
-    if (savedData) {
-      cachedData = JSON.parse(savedData);
-      loadPlots(cachedData);
-    } else {
-      // Load Excel file from GitHub
-      fetch('https://raw.githubusercontent.com/Lunavere/Testing-1/main/data(rev1).xlsx')
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-          const data = new Uint8Array(arrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const json = XLSX.utils.sheet_to_json(sheet);
-          cachedData = json;
-          localStorage.setItem('plotData', JSON.stringify(cachedData));
-          loadPlots(cachedData);
-        })
-        .catch(err => console.error("Lỗi tải file Excel từ GitHub:", err));
+  async function fetchGoogleSheetCSV(sheetId) {
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+    const res = await fetch(url);
+    const text = await res.text();
+    const rows = text.split('\n').map(r => r.split(','));
+    const headers = rows[0];
+    const data = rows.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((key, i) => obj[key.trim()] = row[i] ? row[i].trim() : "");
+      return obj;
+    });
+    return data;
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    const sheetId = "1V-s_8B6ChxZAiNW1C9wmZtccJHj7It2G";
+    try {
+      const data = await fetchGoogleSheetCSV(sheetId);
+      loadPlots(data);
+    } catch (err) {
+      console.error("Không thể tải dữ liệu từ Google Sheet:", err);
     }
   });
 </script>
