@@ -69,7 +69,7 @@
 
       const temp = document.createElementNS("http://www.w3.org/2000/svg", "g");
       temp.innerHTML = svgCode;
-      const el = temp.firstChild;
+      const el = temp.firstElementChild;
       if (el) {
         el.setAttribute("id", plotId);
         el.classList.add("plot");
@@ -96,7 +96,7 @@
       const obj = {};
       headers.forEach((key, i) => obj[key.trim()] = row[i] ? row[i].trim() : "");
       return obj;
-    });
+    }).filter(obj => obj.plot_id && obj.plot_name && obj.svg_code);
     return data;
   }
 
