@@ -1,121 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Bản đồ khu đất</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    #plotButtons { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-    #plotButtons button { padding: 10px 15px; border: 1px solid #aaa; background: #f0f0f0; cursor: pointer; border-radius: 5px; }
-    #plotButtons button:hover { background-color: #ddd; }
-    .map-container { border: 1px solid #ccc; width: 100%; height: 600px; overflow: hidden; position: relative; }
-    svg { width: 100%; height: 100%; }
-    .plot:hover { stroke: red; stroke-width: 2px; cursor: pointer; }
-    .highlight { stroke: red !important; stroke-width: 3px !important; fill-opacity: 0.8; }
-    .scale-bar {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background: rgba(255,255,255,0.8);
-      padding: 5px;
-      border: 1px solid #aaa;
-      font-size: 12px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bản Đồ Lô Đất</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>Bản Đồ Lô Đất</h1>
+        </header>
+        
+        <main>
+            <section class="plot-list-section">
+                <h2>Danh sách lô đất</h2>
+                <div class="plot-grid" id="plotGrid">
+                    <!-- Plot buttons will be dynamically generated here -->
+                </div>
+            </section>
+            
+            <section class="map-section">
+                <h2>Bản đồ khu đô thị</h2>
+                <div class="map-container" id="mapContainer">
+                    <div id="svgContainer">
+                        <!-- SVG map will be dynamically inserted here -->
+                    </div>
+                    <div class="zoom-controls">
+                        <button id="zoomIn" title="Phóng to">+</button>
+                        <button id="zoomOut" title="Thu nhỏ">-</button>
+                        <button id="resetZoom" title="Đặt lại">↺</button>
+                    </div>
+                    <div class="scale-indicator" id="scaleIndicator">
+                        Tỷ lệ: 100%
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Bản Đồ Lô Đất</p>
+        </footer>
+    </div>
 
-<h2>Danh sách lô đất</h2>
-<div id="plotButtons"></div>
-
-<h3>Bản đồ khu đô thị</h3>
-<div class="map-container" id="mapContainer">
-  <svg id="mapSvg">
-    <!-- SVG elements will be inserted here -->
-  </svg>
-  <div class="scale-bar" id="scaleBar">Tỷ lệ: 100%</div>
-</div>
-
-<script>
-  const svg = d3.select("#mapSvg");
-  let zoomLevel = 1;
-
-  const zoom = d3.zoom()
-    .scaleExtent([0.5, 10])
-    .on("zoom", (event) => {
-      svg.select("g").attr("transform", event.transform);
-      zoomLevel = event.transform.k;
-      document.getElementById("scaleBar").innerText = "Tỷ lệ: " + Math.round(zoomLevel * 100) + "%";
-    });
-
-  svg.call(zoom);
-  svg.append("g").attr("id", "mapContent");
-
-  function decodeHTML(str) {
-    const txt = document.createElement('textarea');
-    txt.innerHTML = str;
-    return txt.value;
-  }
-
-  function loadPlots(data) {
-    const buttonContainer = document.getElementById("plotButtons");
-    buttonContainer.innerHTML = "";
-    d3.select("#mapContent").selectAll("*").remove();
-
-    data.forEach(row => {
-      const plotId = row.plot_id;
-      const plotName = row.plot_name;
-      const svgCode = decodeHTML(row.svg_code);
-
-      const btn = document.createElement("button");
-      btn.textContent = plotName;
-      btn.onclick = () => highlightPlot(plotId);
-      buttonContainer.appendChild(btn);
-
-      const temp = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      temp.innerHTML = svgCode;
-      const el = temp.firstElementChild;
-      if (el) {
-        el.setAttribute("id", plotId);
-        el.classList.add("plot");
-        d3.select("#mapContent").node().appendChild(el);
-      }
-    });
-  }
-
-  function highlightPlot(plotId) {
-    const el = d3.select("#" + CSS.escape(plotId));
-    if (!el.node()) return;
-    d3.selectAll(".plot").classed("highlight", false);
-    el.classed("highlight", true);
-    document.getElementById("mapContainer").scrollIntoView({ behavior: "smooth" });
-  }
-
-  async function fetchGoogleSheetCSV(sheetId) {
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
-    const res = await fetch(url);
-    const text = await res.text();
-    const rows = text.split('\n').map(r => r.split(','));
-    const headers = rows[0];
-    const data = rows.slice(1).map(row => {
-      const obj = {};
-      headers.forEach((key, i) => obj[key.trim()] = row[i] ? row[i].trim() : "");
-      return obj;
-    }).filter(obj => obj.plot_id && obj.plot_name && obj.svg_code);
-    return data;
-  }
-
-  window.addEventListener('DOMContentLoaded', async () => {
-    const sheetId = "1V-s_8B6ChxZAiNW1C9wmZtccJHj7It2G";
-    try {
-      const data = await fetchGoogleSheetCSV(sheetId);
-      loadPlots(data);
-    } catch (err) {
-      console.error("Không thể tải dữ liệu từ Google Sheet:", err);
-    }
-  });
-</script>
-
+    <script src="script.js"></script>
 </body>
 </html>
