@@ -12,37 +12,78 @@
             <h1>Bản Đồ Lô Đất</h1>
         </header>
         
-        <main>
-            <section class="plot-list-section">
-                <h2>Danh sách lô đất</h2>
-                <div class="plot-grid" id="plotGrid">
-                    <!-- Plot buttons will be dynamically generated here -->
+        <section class="plot-section">
+            <h2>Danh sách lô đất</h2>
+            <div id="plotGrid" class="plot-grid">
+                <!-- Plot buttons will be generated here -->
+            </div>
+        </section>
+        
+        <section class="map-section">
+            <h2>Bản đồ khu đô thị</h2>
+            <div id="mapContainer" class="map-container">
+                <div class="zoom-controls">
+                    <button id="zoomIn" class="control-button">+</button>
+                    <button id="zoomOut" class="control-button">-</button>
+                    <button id="resetZoom" class="control-button">↺</button>
+                    <span id="scaleIndicator" class="scale-indicator">Tỷ lệ: 100%</span>
                 </div>
-            </section>
-            
-            <section class="map-section">
-                <h2>Bản đồ khu đô thị</h2>
-                <div class="map-container" id="mapContainer">
-                    <div id="svgContainer">
-                        <!-- SVG map will be dynamically inserted here -->
-                    </div>
-                    <div class="zoom-controls">
-                        <button id="zoomIn" title="Phóng to">+</button>
-                        <button id="zoomOut" title="Thu nhỏ">-</button>
-                        <button id="resetZoom" title="Đặt lại">↺</button>
-                    </div>
-                    <div class="scale-indicator" id="scaleIndicator">
-                        Tỷ lệ: 100%
-                    </div>
+                <div id="svgContainer" class="svg-container">
+                    <!-- SVG map will be generated here -->
                 </div>
-            </section>
-        </main>
+            </div>
+        </section>
+        
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h3>Chỉnh sửa lô đất</h3>
+                <form id="editForm">
+                    <div class="form-group">
+                        <label for="editPlotId">Mã lô:</label>
+                        <input type="text" id="editPlotId" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPlotName">Tên lô:</label>
+                        <input type="text" id="editPlotName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPlotColor">Màu sắc:</label>
+                        <input type="color" id="editPlotColor">
+                    </div>
+                    <div class="form-group">
+                        <label for="editPlotX">Vị trí X:</label>
+                        <input type="number" id="editPlotX" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="editPlotY">Vị trí Y:</label>
+                        <input type="number" id="editPlotY" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="editPlotWidth">Chiều rộng:</label>
+                        <input type="number" id="editPlotWidth" step="0.01" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="editPlotHeight">Chiều cao:</label>
+                        <input type="number" id="editPlotHeight" step="0.01" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="editSvgCode">Mã SVG:</label>
+                        <textarea id="editSvgCode" rows="5"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="action-button">Lưu thay đổi</button>
+                        <button type="button" id="cancelEdit" class="action-button">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
         
         <footer>
             <p>&copy; 2025 Bản Đồ Lô Đất</p>
         </footer>
     </div>
-
+    
     <script src="script.js"></script>
 </body>
 </html>
