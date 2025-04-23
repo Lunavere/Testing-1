@@ -33,20 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize zoom controls
     initializeZoomControls();
-    
-    // Add row count display
-    const rowCountDisplay = document.createElement('div');
-    rowCountDisplay.id = 'rowCountDisplay';
-    rowCountDisplay.style.position = 'absolute';
-    rowCountDisplay.style.left = '10px';
-    rowCountDisplay.style.top = '10px';
-    rowCountDisplay.style.background = 'rgba(0,0,0,0.7)';
-    rowCountDisplay.style.color = 'white';
-    rowCountDisplay.style.padding = '5px 10px';
-    rowCountDisplay.style.borderRadius = '5px';
-    rowCountDisplay.style.fontSize = '14px';
-    document.querySelector('.map-section').appendChild(rowCountDisplay);
-    
+      
     // Fetch data from Google Sheet immediately
     fetchDataFromGoogleSheet();
     
