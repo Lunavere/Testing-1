@@ -1,4 +1,4 @@
-/* General Styles */
+/* Main styles */
 * {
     margin: 0;
     padding: 0;
@@ -23,15 +23,27 @@ header {
     margin-bottom: 30px;
 }
 
-h1, h2 {
-    margin-bottom: 15px;
+h1, h2, h3 {
+    margin-bottom: 20px;
 }
 
-/* Plot List Section */
-.plot-list-section {
-    margin-bottom: 30px;
+section {
+    margin-bottom: 40px;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    color: #666;
+    border-top: 1px solid #ddd;
+}
+
+/* Plot grid styles */
 .plot-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -40,189 +52,258 @@ h1, h2 {
 }
 
 .plot-button {
-    padding: 12px 15px;
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
+    position: relative;
+    padding: 15px 10px;
+    background-color: #f8f8f8;
+    border: 2px solid #ddd;
     border-radius: 5px;
     cursor: pointer;
-    text-align: center;
+    font-size: 16px;
     transition: all 0.3s ease;
+    text-align: center;
 }
 
 .plot-button:hover {
-    background-color: #e0e0e0;
+    background-color: #f0f0f0;
     transform: translateY(-2px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .plot-button.active {
-    background-color: #4CAF50;
-    color: white;
-    border-color: #3e8e41;
+    background-color: #e6f7ff;
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-/* Map Section */
-.map-section {
-    margin-bottom: 30px;
-}
-
-.map-container {
-    position: relative;
-    width: 100%;
-    height: 500px;
-    border: 1px solid #ddd;
-    background-color: white;
-    border-radius: 5px;
-}
-
-#svgContainer {
-    width: 100%;
-    height: 100%;
-    overflow: auto; /* Add scrollbars to this container */
-    position: relative;
-}
-
-/* Ensure SVG elements are properly sized */
-svg {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-/* Ensure the map content scales properly */
-#mapContent {
-    transform-origin: 0 0;
-}
-
-/* Style for individual plot SVGs */
-.plot-svg {
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.plot-svg:hover {
-    opacity: 0.9;
-}
-
-/* Zoom Controls */
-.zoom-controls {
+.edit-btn {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    z-index: 20;
-}
-
-.zoom-controls button {
-    width: 36px;
-    height: 36px;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    background-color: #1890ff;
+    color: white;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: all 0.2s ease;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s;
 }
 
-.zoom-controls button:hover {
-    background-color: #f5f5f5;
+.edit-btn:hover {
+    opacity: 1;
 }
 
-.zoom-controls button:active {
-    transform: translateY(1px);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+/* Map container styles */
+.map-container {
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    height: 500px;
+    overflow: hidden;
+    margin-top: 20px;
 }
 
-.scale-indicator {
+.svg-container {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: #f9f9f9;
+}
+
+.svg-container svg {
+    display: block;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+.plot-rect {
+    cursor: pointer;
+    transition: stroke-width 0.3s, stroke 0.3s;
+}
+
+.plot-rect:hover {
+    stroke-width: 2;
+}
+
+.plot-highlight {
+    stroke: #ff4d4f !important;
+    stroke-width: 3 !important;
+}
+
+/* Zoom controls */
+.zoom-controls {
     position: absolute;
     bottom: 10px;
-    left: 10px;
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 5px 10px;
-    border-radius: 3px;
-    font-size: 12px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
     z-index: 10;
 }
 
-/* SVG Highlighting */
-.plot-highlight {
-    stroke: red !important;
-    stroke-width: 3px !important;
-}
-
-/* Make sure rect elements have a stroke for highlighting */
-rect {
-    stroke-width: 1px;
-    stroke: #000;
-    vector-effect: non-scaling-stroke; /* Ensures stroke width stays constant regardless of scaling */
-}
-
-/* Footer */
-footer {
-    text-align: center;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #ddd;
-    color: #777;
-}
-
-/* Error Message */
-.error-message {
-    background-color: #ffebee;
-    color: #c62828;
-    padding: 10px 15px;
-    margin-bottom: 15px;
+.control-button {
+    width: 30px;
+    height: 30px;
+    background-color: white;
+    border: 1px solid #ddd;
     border-radius: 4px;
-    border-left: 4px solid #c62828;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
 }
 
-/* Responsive Design */
+.control-button:hover {
+    background-color: #f0f0f0;
+}
+
+.scale-indicator {
+    padding: 5px 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    font-size: 14px;
+    margin-left: 5px;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-width: 600px;
+    width: 90%;
+    position: relative;
+}
+
+.close-modal {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #999;
+    cursor: pointer;
+}
+
+.close-modal:hover {
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.action-button {
+    padding: 10px 15px;
+    background-color: #1890ff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.action-button:hover {
+    background-color: #40a9ff;
+}
+
+#cancelEdit {
+    background-color: #ff4d4f;
+}
+
+#cancelEdit:hover {
+    background-color: #ff7875;
+}
+
+/* Edit mode styles */
+.edit-mode .plot-rect {
+    cursor: move;
+}
+
+.edit-mode .plot-button {
+    cursor: pointer;
+}
+
+/* Responsive styles */
 @media (max-width: 768px) {
-    .container {
-        padding: 15px;
-    }
-    
     .plot-grid {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 10px;
     }
     
     .map-container {
         height: 400px;
     }
     
-    .zoom-controls button {
-        width: 32px;
-        height: 32px;
-        font-size: 16px;
+    .modal-content {
+        margin: 15% auto;
+        width: 95%;
     }
 }
 
 @media (max-width: 480px) {
     .plot-grid {
         grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-        gap: 8px;
-    }
-    
-    .plot-button {
-        padding: 10px;
-        font-size: 14px;
     }
     
     .map-container {
-        height: 350px;
+        height: 300px;
     }
     
-    .zoom-controls button {
-        width: 28px;
-        height: 28px;
+    .control-button {
+        width: 25px;
+        height: 25px;
         font-size: 14px;
+    }
+    
+    .scale-indicator {
+        font-size: 12px;
     }
 }
