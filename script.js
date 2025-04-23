@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize zoom controls
     initializeZoomControls();
-      
+    
     // Fetch data from Google Sheet immediately
     fetchDataFromGoogleSheet();
     
@@ -73,14 +73,6 @@ function setupEventListeners() {
             fetchDataFromGoogleSheet();
         }
     });
-}
-
-// Update row count display
-function updateRowCountDisplay(count) {
-    const display = document.getElementById('rowCountDisplay');
-    if (display) {
-        display.textContent = `Số lô: ${count}`;
-    }
 }
 
 // Initialize zoom controls
@@ -197,7 +189,6 @@ function fetchDataFromGoogleSheet() {
                 
                 if (dataChanged) {
                     plotData = data;
-                    updateRowCountDisplay(plotData.length);
                     renderPlotButtons();
                     generateSVGMap();
                     console.log('UI updated with new data');
