@@ -1,8 +1,6 @@
 // Constants
-const SHEET_ID = '1V-s_8B6ChxZAiNW1C9wmZtccJHj7It2G';
-const SHEET_NAME = 'Sheet1'; // Assuming the sheet name is Sheet1
-const SHEET_RANGE = 'A:C'; // Assuming columns A, B, C contain plot_id, plot_name, svg_code
-const REFRESH_INTERVAL = 5000; // Refresh data every 5 seconds for more responsive updates
+const REFRESH_INTERVAL = 5000; // Refresh data every 5 seconds
+const GOOGLE_SHEET_PROXY_URL = "https://script.google.com/macros/s/AKfycbwizUYzvyI_on7b7zqOUmIPVUMBpL4zuiJ09-FAKLfWOJdEZUHXWFLTi-TEsSZEjZeIZQ/exec";
 
 // DOM Elements
 const plotGrid = document.getElementById('plotGrid');
@@ -12,6 +10,8 @@ const scaleIndicator = document.getElementById('scaleIndicator');
 const zoomInBtn = document.getElementById('zoomIn');
 const zoomOutBtn = document.getElementById('zoomOut');
 const resetZoomBtn = document.getElementById('resetZoom');
+const editModal = document.getElementById('editModal');
+const editForm = document.getElementById('editForm');
 
 // State
 let currentSelectedPlot = null;
@@ -21,16 +21,80 @@ const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.2;
 let refreshTimer = null;
-let lastDataHash = ''; // To track if data has changed
+let isRefreshing = false;
+let isEditMode = false;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    fetchDataFromGoogleSheet();
+    console.log('Application initialized');
+    
+    // Set up event listeners
+    setupEventListeners();
+    
+    // Initialize zoom controls
     initializeZoomControls();
     
-    // Set up periodic refresh
+    // Add row count display
+    const rowCountDisplay = document.createElement('div');
+    rowCountDisplay.id = 'rowCountDisplay';
+    rowCountDisplay.style.position = 'absolute';
+    rowCountDisplay.style.left = '10px';
+    rowCountDisplay.style.top = '10px';
+    rowCountDisplay.style.background = 'rgba(0,0,0,0.7)';
+    rowCountDisplay.style.color = 'white';
+    rowCountDisplay.style.padding = '5px 10px';
+    rowCountDisplay.style.borderRadius = '5px';
+    rowCountDisplay.style.fontSize = '14px';
+    document.querySelector('.map-section').appendChild(rowCountDisplay);
+    
+    // Fetch data from Google Sheet immediately
+    fetchDataFromGoogleSheet();
+    
+    // Set up automatic refresh
     refreshTimer = setInterval(fetchDataFromGoogleSheet, REFRESH_INTERVAL);
 });
+
+// Set up event listeners
+function setupEventListeners() {
+    // Modal close button
+    document.querySelector('.close-modal').addEventListener('click', closeModal);
+    
+    // Cancel edit button
+    document.getElementById('cancelEdit').addEventListener('click', closeModal);
+    
+    // Edit form submit
+    editForm.addEventListener('submit', handleEditFormSubmit);
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', (event) => {
+        if (event.target === editModal) {
+            closeModal();
+        }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (event) => {
+        // Escape key to close modal
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+        
+        // Ctrl+R or Cmd+R for manual refresh
+        if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
+            event.preventDefault();
+            console.log('Manual refresh triggered via keyboard');
+            fetchDataFromGoogleSheet();
+        }
+    });
+}
+
+// Update row count display
+function updateRowCountDisplay(count) {
+    const display = document.getElementById('rowCountDisplay');
+    if (display) {
+        display.textContent = `Số lô: ${count}`;
+    }
+}
 
 // Initialize zoom controls
 function initializeZoomControls() {
@@ -120,106 +184,223 @@ function updateScaleIndicator() {
     scaleIndicator.textContent = `Tỷ lệ: ${percentage}%`;
 }
 
-// Simple hash function for data comparison
-function hashData(data) {
-    return JSON.stringify(data);
-}
-
 // Fetch data from Google Sheet
-async function fetchDataFromGoogleSheet() {
+function fetchDataFromGoogleSheet() {
+    if (isRefreshing) return;
+    
+    isRefreshing = true;
+    console.log('Fetching data from Google Sheet...');
+    
+    // Add cache-busting parameter to prevent caching
+    const url = `${GOOGLE_SHEET_PROXY_URL}?timestamp=${new Date().getTime()}`;
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Data received from Google Sheet:', data);
+            
+            if (Array.isArray(data) && data.length > 0) {
+                // Check if data has changed
+                const dataChanged = JSON.stringify(data) !== JSON.stringify(plotData);
+                
+                if (dataChanged) {
+                    plotData = data;
+                    updateRowCountDisplay(plotData.length);
+                    renderPlotButtons();
+                    generateSVGMap();
+                    console.log('UI updated with new data');
+                } else {
+                    console.log('No changes in data, skipping UI update');
+                }
+            } else {
+                console.warn('No valid data received from Google Sheet');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching data from Google Sheet:', error);
+        })
+        .finally(() => {
+            isRefreshing = false;
+        });
+}
+
+// Toggle edit mode
+function toggleEditMode() {
+    isEditMode = !isEditMode;
+    
+    if (isEditMode) {
+        document.body.classList.add('edit-mode');
+    } else {
+        document.body.classList.remove('edit-mode');
+    }
+    
+    // Re-render to add or remove edit buttons
+    renderPlotButtons();
+    generateSVGMap();
+}
+
+// Open edit modal for a plot
+function openEditModal(plotId) {
+    const plot = plotData.find(p => p.plot_id === plotId);
+    if (!plot) return;
+    
+    // Parse SVG to get properties
+    const svgData = parseSvgCode(plot.svg_code);
+    
+    // Fill form fields
+    document.getElementById('editPlotId').value = plot.plot_id;
+    document.getElementById('editPlotName').value = plot.plot_name;
+    document.getElementById('editPlotColor').value = svgData.fillColor;
+    document.getElementById('editPlotX').value = svgData.x;
+    document.getElementById('editPlotY').value = svgData.y;
+    document.getElementById('editPlotWidth').value = svgData.width;
+    document.getElementById('editPlotHeight').value = svgData.height;
+    document.getElementById('editSvgCode').value = plot.svg_code;
+    
+    // Show modal
+    editModal.style.display = 'block';
+}
+
+// Close edit modal
+function closeModal() {
+    editModal.style.display = 'none';
+}
+
+// Handle edit form submit
+function handleEditFormSubmit(event) {
+    event.preventDefault();
+    
+    const plotId = document.getElementById('editPlotId').value;
+    const plotName = document.getElementById('editPlotName').value;
+    const plotColor = document.getElementById('editPlotColor').value;
+    const plotX = parseFloat(document.getElementById('editPlotX').value);
+    const plotY = parseFloat(document.getElementById('editPlotY').value);
+    const plotWidth = parseFloat(document.getElementById('editPlotWidth').value);
+    const plotHeight = parseFloat(document.getElementById('editPlotHeight').value);
+    
+    // Find the plot to edit
+    const plotIndex = plotData.findIndex(p => p.plot_id === plotId);
+    if (plotIndex === -1) return;
+    
+    // Update plot name
+    plotData[plotIndex].plot_name = plotName;
+    
+    // Generate new SVG code
+    plotData[plotIndex].svg_code = `<svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 496.34 94.98"><defs><style>.cls-${plotId}{fill:${plotColor};}</style></defs><rect class="cls-${plotId}" x="${plotX}" y="${plotY}" width="${plotWidth}" height="${plotHeight}"/></svg>`;
+    
+    // Update UI
+    renderPlotButtons();
+    generateSVGMap();
+    
+    // Close modal
+    closeModal();
+    
+    // Select the edited plot
+    selectPlot(plotId);
+}
+
+// Parse SVG code to extract style and geometry information
+function parseSvgCode(svgCode) {
     try {
-        // Add a cache-busting parameter to prevent caching
-        const cacheBuster = new Date().getTime();
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!${SHEET_RANGE}?key=AIzaSyBNlYH01_9Hc5S1J9vuFmu2nUqBZJNAXxs&_=${cacheBuster}`;
+        // Create a temporary div to parse the SVG
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = svgCode.trim();
         
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch data from Google Sheet');
+        // Get the SVG element
+        const svg = tempDiv.querySelector('svg');
+        if (!svg) {
+            throw new Error('No SVG element found');
         }
         
-        const data = await response.json();
+        // Get the viewBox
+        const viewBox = svg.getAttribute('viewBox') || '0 0 496.34 94.98';
         
-        // Check if data has changed
-        const newDataHash = hashData(data.values);
-        if (newDataHash !== lastDataHash) {
-            lastDataHash = newDataHash;
-            processSheetData(data.values);
-            console.log('Data updated from Google Sheet');
-        } else {
-            console.log('No changes detected in Google Sheet data');
+        // Get the rect element
+        const rect = svg.querySelector('rect');
+        if (!rect) {
+            throw new Error('No rect element found');
         }
-    } catch (error) {
-        console.error('Error fetching data:', error);
-        // For demo purposes, use sample data if fetch fails
-        if (plotData.length === 0) {
-            useSampleData();
+        
+        // Get rect attributes
+        const x = rect.getAttribute('x') || '0';
+        const y = rect.getAttribute('y') || '0';
+        const width = rect.getAttribute('width') || '94.98';
+        const height = rect.getAttribute('height') || '94.98';
+        
+        // Get style information
+        let fillColor = '#cccccc'; // Default gray
+        
+        // Try to get fill color from rect directly
+        if (rect.getAttribute('fill')) {
+            fillColor = rect.getAttribute('fill');
+        } 
+        // Try to get fill color from class
+        else if (rect.getAttribute('class')) {
+            const className = rect.getAttribute('class');
+            const styleTag = svg.querySelector('style');
+            if (styleTag) {
+                const styleText = styleTag.textContent;
+                const fillMatch = styleText.match(new RegExp(`\\.${className}\\s*{[^}]*fill\\s*:\\s*(#[0-9a-fA-F]{3,6}|rgb\\([^)]+\\)|[a-zA-Z]+)`));
+                if (fillMatch) {
+                    fillColor = fillMatch[1];
+                }
+            }
         }
-    }
-}
-
-// Process data from Google Sheet
-function processSheetData(values) {
-    if (!values || values.length <= 1) {
-        console.error('No data found in the sheet');
-        useSampleData();
-        return;
-    }
-    
-    // Skip header row
-    const headers = values[0];
-    const rows = values.slice(1);
-    
-    // Save current selected plot ID if any
-    const previousSelectedPlotId = currentSelectedPlot;
-    
-    plotData = rows.map(row => {
+        // Try to extract from style definitions
+        else {
+            const defs = svg.querySelector('defs');
+            if (defs) {
+                const styles = defs.querySelectorAll('style');
+                for (const style of styles) {
+                    const styleText = style.textContent;
+                    const fillMatch = styleText.match(/\.cls-\d+\s*{\s*fill\s*:\s*(#[0-9a-fA-F]{3,6}|rgb\([^)]+\)|[a-zA-Z]+)/);
+                    if (fillMatch) {
+                        fillColor = fillMatch[1];
+                        break;
+                    }
+                }
+            }
+        }
+        
         return {
-            plot_id: row[0] || '',
-            plot_name: row[1] || '',
-            svg_code: row[2] || ''
+            viewBox,
+            x: parseFloat(x),
+            y: parseFloat(y),
+            width: parseFloat(width),
+            height: parseFloat(height),
+            fillColor
         };
-    });
-    
-    renderPlotButtons();
-    renderSVGMap();
-    
-    // Reselect the previously selected plot if it still exists
-    if (previousSelectedPlotId) {
-        const plotStillExists = plotData.some(plot => plot.plot_id === previousSelectedPlotId);
-        if (plotStillExists) {
-            selectPlot(previousSelectedPlotId);
-        }
+    } catch (error) {
+        console.error('Error parsing SVG code:', error);
+        // Return default values
+        return {
+            viewBox: '0 0 496.34 94.98',
+            x: 0,
+            y: 0,
+            width: 94.98,
+            height: 94.98,
+            fillColor: '#cccccc'
+        };
     }
-}
-
-// Use sample data for testing or when fetch fails
-function useSampleData() {
-    plotData = [
-        { 
-            plot_id: '1', 
-            plot_name: 'Lô 01', 
-            svg_code: '<svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 496.34 94.98"><defs><style>.cls-1{fill:#ed1c24;}</style></defs><rect class="cls-1" width="94.98" height="94.98"/></svg>' 
-        },
-        { 
-            plot_id: '2', 
-            plot_name: 'Lô 02', 
-            svg_code: '<svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 496.34 94.98"><defs><style>.cls-2{fill:#00a651;}</style></defs><rect class="cls-2" x="100.34" width="94.98" height="94.98"/></svg>' 
-        },
-        { 
-            plot_id: '3', 
-            plot_name: 'Lô 03', 
-            svg_code: '<svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 496.34 94.98"><defs><style>.cls-3{fill:#00aeef;}</style></defs><rect class="cls-3" x="200.68" width="94.98" height="94.98"/></svg>' 
-        }
-    ];
-    
-    renderPlotButtons();
-    renderSVGMap();
 }
 
 // Render plot buttons in grid layout
 function renderPlotButtons() {
+    // Clear existing buttons
     plotGrid.innerHTML = '';
+    
+    // Check if we have data
+    if (!plotData || plotData.length === 0) {
+        console.warn('No plot data available to render buttons');
+        return;
+    }
+    
+    console.log(`Rendering ${plotData.length} plot buttons`);
     
     plotData.forEach(plot => {
         const button = document.createElement('button');
@@ -227,63 +408,102 @@ function renderPlotButtons() {
         button.dataset.plotId = plot.plot_id;
         button.textContent = plot.plot_name;
         
+        // Parse SVG to get color
+        const parsedSvg = parseSvgCode(plot.svg_code);
+        
+        // Set button border color to match plot color
+        if (parsedSvg && parsedSvg.fillColor) {
+            button.style.borderColor = parsedSvg.fillColor;
+        }
+        
         button.addEventListener('click', () => {
-            selectPlot(plot.plot_id);
+            if (isEditMode) {
+                openEditModal(plot.plot_id);
+            } else {
+                selectPlot(plot.plot_id);
+            }
         });
+        
+        // Add edit button in edit mode
+        if (isEditMode) {
+            const editBtn = document.createElement('span');
+            editBtn.className = 'edit-btn';
+            editBtn.innerHTML = '✎';
+            editBtn.title = 'Chỉnh sửa lô đất';
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent button click
+                openEditModal(plot.plot_id);
+            });
+            button.appendChild(editBtn);
+        }
         
         plotGrid.appendChild(button);
     });
 }
 
-// Render SVG map
-function renderSVGMap() {
+// Generate SVG map dynamically from plot data
+function generateSVGMap() {
     // Remember scroll position
     const scrollLeft = svgContainer.scrollLeft;
     const scrollTop = svgContainer.scrollTop;
     
-    // Create a container SVG with a wider viewBox to accommodate all plots
+    // Check if we have data
+    if (!plotData || plotData.length === 0) {
+        console.warn('No plot data available to generate SVG map');
+        svgContainer.innerHTML = '<div class="error-message">No plot data available</div>';
+        return;
+    }
+    
+    console.log(`Generating SVG map with ${plotData.length} plots`);
+    
+    // Parse SVG data for all plots
+    const parsedPlots = plotData.map(plot => ({
+        ...plot,
+        svg_data: parseSvgCode(plot.svg_code)
+    }));
+    
+    // Create a container SVG with a viewBox that accommodates all plots
+    let maxX = 0;
+    let maxY = 0;
+    
+    // Calculate the maximum dimensions needed
+    parsedPlots.forEach(plot => {
+        if (plot.svg_data) {
+            const rightEdge = plot.svg_data.x + plot.svg_data.width;
+            const bottomEdge = plot.svg_data.y + plot.svg_data.height;
+            maxX = Math.max(maxX, rightEdge);
+            maxY = Math.max(maxY, bottomEdge);
+        }
+    });
+    
+    // Add some padding
+    maxX += 50;
+    maxY += 50;
+    
+    // Create the SVG content
     let svgContent = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${maxX} ${maxY}" preserveAspectRatio="xMidYMid meet">
             <g id="mapContent">
     `;
     
-    // Process and add each SVG directly
-    plotData.forEach(plot => {
-        try {
-            // Create a temporary div to parse the SVG
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = plot.svg_code.trim();
-            
-            // Get the SVG element
-            const svg = tempDiv.querySelector('svg');
-            
-            if (svg) {
-                // Extract the defs section with styles
-                const defs = svg.querySelector('defs');
-                const defsContent = defs ? defs.outerHTML : '';
-                
-                // Extract the rect element
-                const rect = svg.querySelector('rect');
-                
-                if (rect) {
-                    // Get all attributes from the rect
-                    const rectAttributes = Array.from(rect.attributes)
-                        .map(attr => `${attr.name}="${attr.value}"`)
-                        .join(' ');
-                    
-                    // Add the SVG content with proper ID for selection
-                    svgContent += `
-                        ${defsContent}
-                        <rect id="${plot.plot_id}" ${rectAttributes}></rect>
-                    `;
-                } else {
-                    console.error('No rect element found in SVG for plot:', plot.plot_id);
-                }
-            } else {
-                console.error('Invalid SVG for plot:', plot.plot_id);
-            }
-        } catch (error) {
-            console.error('Error processing SVG for plot:', plot.plot_id, error);
+    // Add each plot as a rectangle
+    parsedPlots.forEach(plot => {
+        if (plot.svg_data) {
+            svgContent += `
+                <rect 
+                    id="${plot.plot_id}" 
+                    x="${plot.svg_data.x}" 
+                    y="${plot.svg_data.y}" 
+                    width="${plot.svg_data.width}" 
+                    height="${plot.svg_data.height}" 
+                    fill="${plot.svg_data.fillColor}" 
+                    stroke="#000" 
+                    stroke-width="1"
+                    class="plot-rect"
+                    data-plot-id="${plot.plot_id}"
+                    data-plot-name="${plot.plot_name}"
+                ></rect>
+            `;
         }
     });
     
@@ -297,11 +517,15 @@ function renderSVGMap() {
     svgContainer.innerHTML = svgContent;
     
     // Add click event listeners to SVG elements
-    plotData.forEach(plot => {
+    parsedPlots.forEach(plot => {
         const svgElement = document.getElementById(plot.plot_id);
         if (svgElement) {
             svgElement.addEventListener('click', () => {
-                selectPlot(plot.plot_id);
+                if (isEditMode) {
+                    openEditModal(plot.plot_id);
+                } else {
+                    selectPlot(plot.plot_id);
+                }
             });
         }
     });
@@ -346,17 +570,6 @@ function selectPlot(plotId) {
         const mapSection = document.querySelector('.map-section');
         mapSection.scrollIntoView({ behavior: 'smooth' });
     }
-}
-
-// Function to handle errors with Google Sheets API
-function handleAPIError() {
-    const errorMessage = document.createElement('div');
-    errorMessage.className = 'error-message';
-    errorMessage.textContent = 'Unable to load data from Google Sheet. Using sample data instead.';
-    document.querySelector('.container').prepend(errorMessage);
-    
-    // Use sample data as fallback
-    useSampleData();
 }
 
 // Clean up on page unload
